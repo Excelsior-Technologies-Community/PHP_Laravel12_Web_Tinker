@@ -59,7 +59,7 @@ class TinkerCommandController extends Controller
             ob_start();
 
             // ⚠️ DANGER: eval only for dev
-            $result = eval("return " . $command . ";");
+            $result = eval ("return " . $command . ";");
 
             $output = ob_get_clean();
 
@@ -73,7 +73,7 @@ class TinkerCommandController extends Controller
 
         TinkerCommand::create([
             'command' => $command,
-            'result'  => json_encode($result),
+            'result' => json_encode($result),
         ]);
 
         return back()->with('success', '✅ Command executed successfully!');
