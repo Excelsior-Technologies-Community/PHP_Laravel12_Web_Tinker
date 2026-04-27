@@ -176,6 +176,9 @@ PHP_Laravel12_Web_Tinker/
 ------------------------------------------------------------------------
 
 Your PHP_Laravel12_Web_Tinker Project is now ready!
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> development
