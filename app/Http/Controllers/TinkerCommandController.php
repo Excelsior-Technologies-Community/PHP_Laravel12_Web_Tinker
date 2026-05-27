@@ -7,45 +7,29 @@ use App\Models\TinkerCommand;
 
 class TinkerCommandController extends Controller
 {
-    // =========================
-    // LIST + SEARCH + FILTER + TRASH VIEW
-    // =========================
     public function index(Request $request)
     {
-        // 🗑 TRASH MODE
         if ($request->view == 'trash') {
             $query = TinkerCommand::onlyTrashed();
         } else {
             $query = TinkerCommand::query();
         }
 
-        // 🔍 SEARCH (FIXED FOR \ BACKSLASH ISSUE)
         if ($request->filled('search')) {
-            $search = $request->search;
-
-            // FIX: escape backslashes properly
-            $search = str_replace('\\', '\\\\', $search);
-
+            $search = str_replace('\\', '\\\\', $request->search);
             $query->where('command', 'like', "%{$search}%");
         }
 
-        // ⭐ FAVORITE FILTER
         if ($request->filled('favorite')) {
             $query->where('is_favorite', 1);
         }
 
-        // 📊 ORDER BY ASC
-        $commands = $query->orderBy('created_at', 'asc')->paginate(10);
-
-        // 🔁 KEEP QUERY IN PAGINATION
+        $commands = $query->orderBy('created_at', 'desc')->paginate(10);
         $commands->appends($request->all());
 
         return view('tinker.index', compact('commands'));
     }
 
-    // =========================
-    // EXECUTE COMMAND
-    // =========================
     public function store(Request $request)
     {
         $request->validate([
@@ -55,37 +39,37 @@ class TinkerCommandController extends Controller
         $command = $request->command;
         $result = null;
 
+        $startTime = microtime(true);
+        $startMemory = memory_get_usage();
+
         try {
             ob_start();
-
-            // ⚠️ DANGER: eval only for dev
             $result = eval ("return " . $command . ";");
-
             $output = ob_get_clean();
 
             if ($output) {
                 $result = $output;
             }
-
         } catch (\Throwable $e) {
             $result = "Error: " . $e->getMessage();
         }
 
+        $executionTime = round(microtime(true) - $startTime, 4) . 's';
+        $memoryUsage = round((memory_get_usage() - $startMemory) / 1024, 2) . ' KB';
+
         TinkerCommand::create([
             'command' => $command,
             'result' => json_encode($result),
+            'execution_time' => $executionTime,
+            'memory_usage' => $memoryUsage,
         ]);
 
-        return back()->with('success', '✅ Command executed successfully!');
+        return back()->with('success', '✅ Command executed in ' . $executionTime);
     }
 
-    // =========================
-    // TOGGLE FAVORITE
-    // =========================
     public function favorite($id)
     {
         $cmd = TinkerCommand::findOrFail($id);
-
         $cmd->update([
             'is_favorite' => !$cmd->is_favorite
         ]);
@@ -93,9 +77,6 @@ class TinkerCommandController extends Controller
         return back()->with('success', '⭐ Favorite updated!');
     }
 
-    // =========================
-    // SOFT DELETE (TRASH)
-    // =========================
     public function delete($id)
     {
         TinkerCommand::findOrFail($id)->delete();
@@ -103,9 +84,6 @@ class TinkerCommandController extends Controller
         return back()->with('success', '🗑 Moved to trash!');
     }
 
-    // =========================
-    // RESTORE FROM TRASH
-    // =========================
     public function restore($id)
     {
         $cmd = TinkerCommand::onlyTrashed()->find($id);

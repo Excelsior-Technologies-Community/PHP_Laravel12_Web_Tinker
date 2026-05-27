@@ -12,6 +12,9 @@ class TinkerCommand extends Model
     protected $fillable = [
         'command',
         'result',
-        'is_favorite'
+        'is_favorite',
+        'execution_time', 
+    'memory_usage'
+
     ];
 }
